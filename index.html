@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,11 +75,17 @@
     #recaptcha-container {
       margin-bottom: 16px;
     }
+    .info-text {
+      text-align: center;
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
 
-<div class="form-container">
+<div class="form-container" id="form-section">
   <a href="https://wa.me/9381961711" target="_blank" class="whatsapp-top">
     <img src="https://img.icons8.com/color/48/000000/whatsapp--v1.png" alt="WhatsApp"/>
   </a>
@@ -116,6 +123,7 @@
     <input type="tel" id="contact" name="contact" required placeholder="e.g. 9876543210">
 
     <div id="recaptcha-container"></div>
+    <div class="info-text" id="otp-status"></div>
     <button type="button" onclick="sendOTP()">Send OTP</button>
 
     <div id="otpSection">
@@ -131,7 +139,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
 <script>
-  // ✅ Replace this with your Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyDVAyexbjeq6SMEFf5tq5IV9ZEzhSirVdw",
     authDomain: "communityform-cc9fa.firebaseapp.com",
@@ -143,7 +150,6 @@
   };
 
   firebase.initializeApp(firebaseConfig);
-
   let confirmationResult;
 
   window.onload = function () {
@@ -159,49 +165,75 @@
   function sendOTP() {
     const contact = document.getElementById("contact").value;
     const phoneNumber = "+91" + contact;
+    const status = document.getElementById("otp-status");
 
-    if (contact.length !== 10 || isNaN(contact)) {
-      alert("Please enter a valid 10-digit phone number.");
+    if (contact.length !== 10) {
+      status.textContent = "Please enter a valid 10-digit phone number.";
       return;
     }
 
     firebase.auth().signInWithPhoneNumber(phoneNumber, window.recaptchaVerifier)
       .then(function(result) {
         confirmationResult = result;
-        alert("OTP sent to your mobile number.");
+        status.textContent = "OTP sent to your mobile number.";
         document.getElementById("otpSection").style.display = "block";
       })
       .catch(function(error) {
         console.error(error);
-        alert("Failed to send OTP: " + error.message);
+        status.textContent = "Failed to send OTP. Try again.";
       });
   }
 
   function verifyOTP() {
     const otp = document.getElementById("otp").value;
+    const status = document.getElementById("otp-status");
+
     confirmationResult.confirm(otp)
       .then(function(result) {
-        alert("Phone number verified successfully!");
+        status.textContent = "Phone number verified. Submitting form...";
 
-        // Submit the form to Google Sheet
         const form = document.getElementById("userForm");
 
-        // Submit in background using hidden iframe
+        // Collect form data
+        const formData = {
+          name: document.getElementById("name").value,
+          age: document.getElementById("age").value,
+          gender: document.getElementById("gender").value,
+          assembly: document.getElementById("assembly").value,
+          mandal: document.getElementById("mandal").value,
+          village: document.getElementById("village").value,
+          caste: document.getElementById("caste").value,
+          contact: document.getElementById("contact").value
+        };
+
+        const id = "VPK" + Date.now();
+
+        // Save to localStorage
+        localStorage.setItem('legalAidRequest', JSON.stringify({
+          ...formData,
+          submissionId: id,
+          timestamp: new Date().toISOString()
+        }));
+
+        // WhatsApp redirect with message
+        const message = Thank you for reaching out to VPK Legal Aid. Your request ID is ${id}. Our team will contact you within 24 hours. For urgent matters, call +91-9876543210.;
+        const whatsappUrl = https://wa.me/919876543210?text=${encodeURIComponent(message)};
+
+        // Submit to Google Sheets
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         document.body.appendChild(iframe);
-
         form.target = iframe.name = 'hidden_iframe';
         form.submit();
 
-        // Redirect to thank you page after a short delay
+        // Redirect to WhatsApp after delay
         setTimeout(() => {
-          window.location.href = "thankyou.html";
+          window.location.href = whatsappUrl;
         }, 1500);
       })
       .catch(function(error) {
-        alert("Invalid OTP. Please try again.");
         console.error(error);
+        status.textContent = "Invalid OTP. Please try again.";
       });
   }
 </script>
