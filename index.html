@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>User Details Form with OTP (Firebase)</title>
+  <title>User Details Form with OTP</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -74,142 +74,190 @@
     #recaptcha-container {
       margin-bottom: 16px;
     }
+    #messageBox {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 10px;
+      color: #155724;
+      background-color: #d4edda;
+      padding: 10px;
+      border-radius: 6px;
+      display: none;
+    }
+    #successModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0,0,0,0.6);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+    #successModal .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 300px;
+    }
   </style>
 </head>
 <body>
- 
+
 <div class="form-container">
   <a href="https://wa.me/9381961711" target="_blank" class="whatsapp-top">
     <img src="https://img.icons8.com/color/48/000000/whatsapp--v1.png" alt="WhatsApp"/>
   </a>
   <h2>User Registration</h2>
   <h2>Reg: 584/2024</h2>
-  <form id="userForm" method="POST" action="https://script.google.com/macros/s/AKfycbx34uH91NHVOSL8KvZzQRYQZu00g0DFs4AQSZ_7LkGv1ojqm_7CycjejiAaHFAk70GY/exec">
+  <form id="userForm" method="POST" action="https://script.google.com/macros/s/AKfycbyxYbrXT53v7QgdurIBjkV__inQ8JCI4ha9wQN592HWFhapJs9mqE-CBIfiFnqaGBDV/exec">
     <h1>పద్మశాలి సంక్షేమ సంఘం</h1>
- 
+
     <label for="name">Name</label>
     <input type="text" id="name" name="name" required>
- 
+
     <label for="age">Age</label>
     <input type="number" id="age" name="age" required>
- 
+
     <label for="gender">Gender</label>
     <select id="gender" name="gender" required>
       <option value="">Select Gender</option>
       <option value="Male">Male</option>
       <option value="Female">Female</option>
     </select>
- 
+
     <label for="assembly">Assembly</label>
     <input type="text" id="assembly" name="assembly" required>
- 
+
     <label for="mandal">Mandal</label>
     <input type="text" id="mandal" name="mandal" required>
- 
+
     <label for="village">Village</label>
     <input type="text" id="village" name="village" required>
- 
+
     <label for="caste">Caste</label>
     <input type="text" id="caste" name="caste" required>
- 
+
     <label for="contact">Contact Number</label>
     <input type="tel" id="contact" name="contact" required placeholder="e.g. 9876543210">
- 
+
     <div id="recaptcha-container"></div>
     <button type="button" onclick="sendOTP()">Send OTP</button>
- 
+
     <div id="otpSection">
       <label for="otp">Enter OTP</label>
       <input type="text" id="otp" name="otp" placeholder="6-digit OTP" required>
       <button type="button" onclick="verifyOTP()">Verify & Submit</button>
     </div>
+
+    <div id="messageBox"></div>
   </form>
 </div>
- 
+
+<!-- Success Modal -->
+<div id="successModal">
+  <div class="modal-content">
+    <h2 style="color: green;">Success ✅</h2>
+    <p>Your details have been submitted successfully! You’ll now be redirected to our WhatsApp group.</p>
+    <button onclick="closeModal()" style="margin-top: 20px; padding: 10px 20px; background-color: #0984e3; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+  </div>
+</div>
+
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
- 
+
 <script>
-  // ✅ Replace this with your Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyDVAyexbjeq6SMEFf5tq5IV9ZEzhSirVdw",
     authDomain: "communityform-cc9fa.firebaseapp.com",
     projectId: "communityform-cc9fa",
     storageBucket: "communityform-cc9fa.appspot.com",
     messagingSenderId: "1082846572694",
-    appId: "1:1082846572694:web:877396a29df80549fe12b7",
-    measurementId: "G-CBNMX3BTQN"
+    appId: "1:1082846572694:web:877396a29df80549fe12b7"
   };
- 
-  // Initialize Firebase
+
   firebase.initializeApp(firebaseConfig);
- 
-  // Global variables
   let confirmationResult;
- 
+
   window.onload = function () {
     window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
       size: 'normal',
       callback: function(response) {
-        console.log("reCAPTCHA verified");
+        showMessage("reCAPTCHA verified");
       }
     });
-    recaptchaVerifier.render(); // render it explicitly
+    recaptchaVerifier.render();
   };
- 
+
+  function showMessage(msg) {
+    const box = document.getElementById("messageBox");
+    box.innerText = msg;
+    box.style.display = "block";
+    setTimeout(() => box.style.display = "none", 5000);
+  }
+
+  function showSuccessModal() {
+    document.getElementById("successModal").style.display = "flex";
+  }
+
+  function closeModal() {
+    document.getElementById("successModal").style.display = "none";
+  }
+
   function sendOTP() {
     const contact = document.getElementById("contact").value;
     const phoneNumber = "+91" + contact;
- 
-    if (contact.length !== 10) {
-      alert("Please enter a valid 10-digit phone number.");
+
+    if (contact.length !== 10 || isNaN(contact)) {
+      showMessage("Please enter a valid 10-digit phone number.");
       return;
     }
- 
+
     firebase.auth().signInWithPhoneNumber(phoneNumber, window.recaptchaVerifier)
       .then(function(result) {
         confirmationResult = result;
-        alert("OTP sent to your mobile number.");
+        showMessage("OTP sent to your mobile number.");
         document.getElementById("otpSection").style.display = "block";
       })
       .catch(function(error) {
+        showMessage("Failed to send OTP: " + error.message);
         console.error(error);
-        alert("Failed to send OTP: " + error.message);
       });
   }
+
   function verifyOTP() {
-  const otp = document.getElementById("otp").value;
-  confirmationResult.confirm(otp)
-    .then(function(result) {
-      alert("Phone number verified successfully!");
- 
-      // Delay the form submission to show the thank you page
-      setTimeout(() => {
-        // Redirect to thank you page with WhatsApp link
-        window.location.href = "thankyou.html";
-      }, 1000);
-    })
-    .catch(function(error) {
-      alert("Invalid OTP. Please try again.");
-      console.error(error);
-    });
-}
- 
- 
- /* function verifyOTP() {
     const otp = document.getElementById("otp").value;
     confirmationResult.confirm(otp)
       .then(function(result) {
-        alert("Phone number verified successfully!");
-        document.getElementById("userForm").submit();
+        showMessage("OTP verified. Submitting form...");
+
+        const form = document.getElementById("userForm");
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+          method: 'POST',
+          body: formData,
+        }).then(() => {
+          form.reset();
+          document.getElementById("otpSection").style.display = "none";
+          showSuccessModal();
+
+          setTimeout(() => {
+            // ✅ WhatsApp group link (REPLACE with your actual link)
+            window.location.href = "https://whatsapp.com/channel/0029VbB3jhlDzgT4dOl3R700";
+          }, 3000);
+
+        }).catch(err => {
+          showMessage("Form submission failed.");
+          console.error(err);
+        });
       })
       .catch(function(error) {
-        alert("Invalid OTP. Please try again.");
+        showMessage("Invalid OTP. Please try again.");
         console.error(error);
       });
-  }*/
+  }
 </script>
- 
 </body>
 </html>
